@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import MealForm from '../../components/MealForm/MealForm.tsx';
+import MealForm from '../../components/MealForm/MealForm';
 import { Meal, NewMeal } from '../../types';
-import axiosApi from '../../axiosAPI.ts';
+import axiosApi from '../../axiosAPI';
 
 const MealsContainer = () => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingMeal, setEditingMeal] = useState<Meal | undefined>(undefined);
 
   const fetchMeals = async () => {
     setLoading(true);
@@ -25,9 +26,8 @@ const MealsContainer = () => {
   };
 
   useEffect(() => {
-    void fetchMeals();
+    fetchMeals();
   }, []);
-
 
   const addMeal = async (meal: NewMeal) => {
     setIsAdding(true);
@@ -42,6 +42,18 @@ const MealsContainer = () => {
     }
   };
 
+  const updateMeal = async (id: string, updatedMeal: NewMeal) => {
+    setIsAdding(true);
+    try {
+      await axiosApi.put(`/meals/${id}.json`, updatedMeal);
+      setMeals(meals.map(meal => (meal.id === id ? { id, ...updatedMeal } : meal)));
+      setEditingMeal(undefined);
+    } catch (error) {
+      console.error('Error updating meal:', error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   const deleteMeal = async (id: string) => {
     setDeletingId(id);
@@ -55,33 +67,42 @@ const MealsContainer = () => {
     }
   };
 
-  const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const totalCalories = meals.reduce((sum, meal) => sum + Number(meal.calories), 0);
 
   return (
-    <div className='container mt-5'>
+    <div className="container mt-5">
       <h1>Calorie Tracker</h1>
       <h2>Total calories: {totalCalories} kcal</h2>
 
-      <MealForm addMeal={addMeal} isAdding={isAdding} />
+      <MealForm
+        addMeal={addMeal}
+        updateMeal={updateMeal}
+        isAdding={isAdding}
+        isEditing={Boolean(editingMeal)}
+        initialMeal={editingMeal}
+      />
 
       {loading ? (
         <p>⏳ Loading meals...</p>
       ) : (
-
-      <div>
-        {meals.map((meal) => (
-          <div key={meal.id}>
-            <h3>{meal.time}</h3>
-            <p>{meal.description}</p>
-            <p>{meal.calories} kcal</p>
-            <button
-              disabled={deletingId === meal.id}
-              onClick={() => deleteMeal(meal.id)}
-            > {deletingId === meal.id ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
+        <div>
+          {meals.map((meal) => (
+            <div key={meal.id}>
+              <h3>{meal.time}</h3>
+              <p>{meal.description}</p>
+              <p>{meal.calories} kcal</p>
+              <button
+                disabled={deletingId === meal.id}
+                onClick={() => deleteMeal(meal.id)}
+              > {deletingId === meal.id ? 'Deleting...' : 'Delete'}
+              </button>
+              <button
+                onClick={() => setEditingMeal(meal)}
+              >✏️ Edit
+              </button>
+            </div>
           ))}
-      </div>
+        </div>
       )}
     </div>
   );

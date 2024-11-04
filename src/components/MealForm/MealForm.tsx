@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
-import { NewMeal } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { NewMeal, Meal } from '../../types';
 import ButtonLoading from '../UI/ButtonLoading/ButtonLoading.tsx';
 
 interface MealFormProps {
   addMeal: (meal: NewMeal) => void;
+  updateMeal?: (id: string, meal: NewMeal) => void;
   isAdding: boolean;
+  isEditing?: boolean;
+  initialMeal?: Meal;
 }
 
-const MealForm: React.FC<MealFormProps> = ({ addMeal, isAdding  }) => {
+const MealForm: React.FC<MealFormProps> = ({ addMeal, updateMeal, isAdding, isEditing = false, initialMeal }) => {
   const [newMeal, setNewMeal] = useState<NewMeal>({ time: '', description: '', calories: 0 });
+
+  useEffect(() => {
+    if (isEditing && initialMeal) {
+      setNewMeal({
+        time: initialMeal.time,
+        description: initialMeal.description,
+        calories: initialMeal.calories,
+      });
+    }
+  }, [isEditing, initialMeal]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -24,10 +37,15 @@ const MealForm: React.FC<MealFormProps> = ({ addMeal, isAdding  }) => {
     e.preventDefault();
     const mealToAdd: NewMeal = { ...newMeal };
     mealToAdd.calories = Number(mealToAdd.calories);
-    addMeal(mealToAdd);
+
+    if (isEditing && initialMeal && updateMeal) {
+      updateMeal(initialMeal.id, mealToAdd);
+    } else {
+      addMeal(mealToAdd);
+    }
+
     setNewMeal({ time: '', description: '', calories: 0 });
   };
-
 
   return (
     <form onSubmit={handleSubmit}>
